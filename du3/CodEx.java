@@ -50,7 +50,7 @@ public class CodEx {
 		}
 
 		public Item get() {
-			if (isEmpty()) throw new RuntimeException("Queue is Empty");
+			if (isEmpty()) throw new RuntimeException("Queue is Empty, method: get()");
 			Item item = first.item;
 			first = first.next;
 			len--;
@@ -60,7 +60,7 @@ public class CodEx {
 		}
 
 		public Item popLast() {
-			if (isEmpty()) throw new RuntimeException("Queue is Empty");
+			if (isEmpty()) throw new RuntimeException("Queue is Empty, method: popLast()");
 			if (len == 1) {
 				Item out = first.item;
 				this.dump();
@@ -76,6 +76,11 @@ public class CodEx {
 			last = cur;
 			len--;
 			return out;
+		}
+
+		public Item showLast() {
+			if (isEmpty()) throw new RuntimeException("Queue is Empty, method: showLast()");
+			return last.item;
 		}
 
 		public void dump() {
@@ -118,11 +123,17 @@ public class CodEx {
 		return kam + " " + co; // + ""
 	}
 
+		static String pridej(String kam, char co) {
+		return kam + " " + co; // + ""
+	}
+
 	static String zpracujVyraz(String vyraz) {
 		String[] split = vyraz.split("\\s+");
 		String out = "";
 		char op = ' ';
+		char last;
 		double d = 0.0;
+		Queue<Character> stack = new Queue<Character>();
 		for (String atom : split) {
 			try {
 				d = Double.parseDouble(atom);
@@ -133,22 +144,85 @@ public class CodEx {
 				if (atom.length() > 1)
 					throw new RuntimeException("dvojmistnej operator");
 
-				// mame na vstupu validni operato TODO
-
-				op = atom[0];
+				// mame na vstupu validni operato
+				op = atom.charAt(0);
 				switch (op) {
-					case
-					
+					// operatory s nejnizsi prioritou
+					case '+':
+					case '-':
+						// pokud je na vrcholu operator s vyssi prioritou, vypiseme
+						try {
+							while (stack.showLast() == '/' || stack.showLast() == '*')
+								out = pridej(out, stack.popLast());
+						} catch (RuntimeException ee) {} finally {
+							stack.put(op);
+						}
+						break;
+
+					// operatory s vyssi prioritou
+					case '*':
+					case '/':
+						stack.put(op); 
+						break;
+
+					// zavorky
+					case '(': stack.put(op); break;
+					case ')':
+						while((last = stack.popLast()) != '(')
+							out = pridej(out, last);
+						break;
+					default: throw new UnsupportedOperationException("neplatny operator");
 				}
 			}
 		}
+		// docetli jsme vstup, vypiseme operatory na vystup
+		
+		while (!stack.isEmpty()) {
+			if ((last = stack.popLast()) == '(') {
+				throw new RuntimeException("spatne uzavorkovani");
+			} else {
+				out = pridej(out, last);
+			}
+		}
 
-		return vyraz;
+		return out;
 	}
 
 	static double vyhodnot(String vyraz) {
+		String[] split = vyraz.split("\\s+");
+		Queue<Double> stack = new Queue<Double>();
+		double d = 0.0;
+		char op = ' ';
 
-		return 1;
+		for (int i = 1; i < split.length; i++) {
+			try {
+				//debug("test " + split[i]);
+				d = Double.parseDouble(split[i]);
+				stack.put(d);
+			} catch (NumberFormatException e) {
+				// dalsi cur je operator, vime ze validni
+				//debug("vyhodnot: " + stack.toString());
+				op = split[i].charAt(0);
+				try {
+					double y = stack.popLast();
+					double x = stack.popLast();
+					switch (op) {
+						case '+': stack.put(x + y); break;
+						case '-': stack.put(x - y); break;
+						case '*': stack.put(x * y); break;
+						case '/': stack.put(x / y); break;
+						default: throw new UnsupportedOperationException();
+					}
+				} catch (RuntimeException ee) {
+					//System.err.println("vyhodnot: " + ee);
+					throw new RuntimeException("Nedostatek operandu");
+				}
+			}
+		}
+		if (stack.size() > 1)
+			throw new RuntimeException("Stack neni prazdny");
+
+		return stack.popLast();
 	}
 
 	public static void main(String[] argv) {
@@ -162,14 +236,19 @@ public class CodEx {
 				ch = (char) i;
 				if (ch == '\n') {
 					try {
-						// prevedu na postfix
-						vyraz = zpracujVyraz(vyraz);
-						// vyhodnotim a vypisu hodnotu
-						System.out.printf("%.5f\n", vyhodnot(vyraz));
+						// pokud neni radek prazdny
+						if (vyraz.trim().length() > 0) {
+							// prevedu na postfix
+							vyraz = zpracujVyraz(vyraz);
+							//debug("main vyraz: " + vyraz);
+							// vyhodnotim a vypisu hodnotu
+							System.out.printf("%.5f\n", vyhodnot(vyraz));
+						}
 					} catch (RuntimeException e) {
+						//System.err.println("main error: " + e);
 						System.out.println(ERROR);
 					}
-					System.out.println(vyraz);
+					//System.out.println(vyraz);
 					vyraz = "";
 				} else 
 					vyraz += ch;
