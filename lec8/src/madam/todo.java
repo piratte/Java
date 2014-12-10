@@ -9,7 +9,7 @@ public class todo {
 
 	private static class Item {
 		public int priority;
-		String what;
+		public String what;
 
 		public Item(String what, int priority) {
 			this.what = what;
@@ -17,7 +17,7 @@ public class todo {
 		}
 
 		public String toString() {
-			return "[] " + what + " priority: " + priority;
+			return what + " " + priority;
 		}
 	}
 
@@ -35,23 +35,30 @@ public class todo {
 	public static void main(String[] args) {
 		todos = new ArrayList<Item>();
 		String dir = System.getProperty("user.home");
-		file = dir + ".todojava";
+		file = dir + "/.todojava";
         try (BufferedReader br = new BufferedReader(new FileReader(file))){
             String line;
             while ((line = br.readLine()) != null) {
                 processLine(line);
             }
         }
-        catch (Exception x) {
-            x.printStackTrace();
+        catch (FileNotFoundException x) {
+            File f = new File(file);
+            try {
+				f.createNewFile();
+			} catch (IOException xx) {
+	        	System.err.println(xx.toString() + " " + file);
+	        }
+        } catch (IOException x) {
+        	System.err.println(x.toString());
         }
 
 		char sw = args[0].charAt(1);
 		switch (sw) {
 			case 'a': insert(args[2], args[1]); break;
-			case 'l': list(1); break;
-			case 'r': list(-1); break;
-			case 'd': delete(); break;
+			case 'l': list(-1); break;
+			case 'r': list(1); break;
+			case 'd': delete(args[1]); break;
 			default:
 				System.err.println("Invalid parameter");
 				break;
@@ -64,18 +71,25 @@ public class todo {
 	}
 
 	static void list(int how) {
-		Collections.sort(todos, (i1,i2) -> i1.priority - i2.priority);
+		Collections.sort(todos, (i1,i2) -> i1.priority - i2.priority * how);
 		for (Item i : todos) {
-			System.out.println(i.toString());
+			System.out.println("[] " + i.toString());
 		}
 	}
 
-	static void delete() {
-
+	static void delete(String s) {
+		ListIterator l = todos.listIterator();
+		Item cur;
+		while (l.hasNext()){
+			cur = (Item)l.next();
+			if (cur.what.equals(s))
+				l.remove();
+		}
+		write();
 	}
 
 	static void write() {
-		try (BufferedWriter bw = new BufferedWriter(FileWriter(file))) {
+		try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
 			for (Item i : todos ) {
 				bw.write(i.toString());
 				bw.write("\n");
