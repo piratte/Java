@@ -41,6 +41,10 @@ public class CodEx {
 	}
 
 	static String zpracujVyraz(String vyraz) {
+		// workaround pro string zacinajici mezerou
+		if (Character.isWhitespace(vyraz.charAt(0)));
+			vyraz = vyraz.substring(1);
+
 		String[] split = vyraz.split("\\s+");
 		String out = "";
 		char op = ' ';
@@ -138,10 +142,10 @@ public class CodEx {
 		return stack.popLast();
 	}
 
-	static String sloz(String[] arr) {
-		String out = "";
-		for (String s : arr) {
-			out += s + " ";
+	static String sloz(String[] arr, int start) {
+		String out = " ";
+		for (int i = start; i<arr.length; i++) {
+			out += arr[i] + " ";
 		}
 		return out;
 	}
@@ -158,28 +162,36 @@ public class CodEx {
 
 	public static void main(String[] argv) {
 
-		final boolean test = true;
+		final boolean test = false;
+		
 		String line;
 		String[] lineArr;
 		final double lastDefVal = 0.0;
 
 		// =============== ZACATEK TESTU ============================
+		if (test){
 		line = "DEF foo(a,b,c) 2*a + 2*b -c";
 		lineArr = parse(line);
 		line = line.replaceAll("x", "" + 123);
 		System.out.println(line);
 		Funkce blah = new Funkce(lineArr);
 		String[] args = parse("30 last 20");
-		for (String s : args ) {
-			debug(s);
+		line = blah.dosad(args);
+		varMap.put("last",1.5);
+		// dosazovani hodnot za promenne
+				for (String s: varMap.keySet()) {
+					debug("tady: " + s);
+					line = line.replaceAll(" " + s + " " , " " + varMap.get(s) + " ");
+				}
+		debug(line);
 		}
-		System.out.println(blah.dosad(args));
 
 		// =============== KONEC TESTU ============================
 		if (!test) {
 
 		varMap.put("last",lastDefVal);
 		double val = lastDefVal;
+		String dosazujeme = "";
 		try(BufferedReader input = new BufferedReader(new InputStreamReader(System.in))){
 			while ((line = input.readLine()) != null) {
 
@@ -193,36 +205,49 @@ public class CodEx {
 					// definijeme si funkci
 					// TODO: dodelat ERROR v definici funkce
 					// je potreba? nestacilo by pri kazdem volani spatne definovane fce hodit ERROR?
-					funMap.put(zjistiJmeno(lineArr[1]), new Funkce(lineArr));
+					funMap.put(lineArr[1], new Funkce(lineArr));
 					varMap.put("last",lastDefVal);
 					continue;
-				}
-
-				if (funMap.containsKey(lineArr[0])) {
+				} else if (funMap.containsKey(lineArr[0])) {
 					// nasli jsme identifikator ve funkcich, nyni misto funkce dosadime jeji definici
 
 					// vytahneme to, co se dosazuje za parametry
 					int parNum = funMap.get(lineArr[0]).getNumOfArgs();
 					String[] params = new String[parNum];
-					int j = 0;
-					for (int i=2; i<parNum; i += 2) {
-						params[j++] = lineArr[i];
+					int i = 2;
+					
+					for (int j=0; j<parNum; ++j) {
+						params[j] = lineArr[i];
+						i += 2;
 					}
-
+					
 					// zavolame metodu na funkci, ktera dosadi za deklarovane argumenty konkretni parametry a vrati vyraz,
 					// ktery odpovida zavolani funkce
 					line = funMap.get(lineArr[0]).dosad(params);
+				} else if (lineArr.length == 1) {
+					if (!varMap.containsKey(lineArr[0]))
+						varMap.put(lineArr[0], 0.0);
+					line = " " + line + " ";
+				} else if (lineArr[1].equals("=")) {
+					dosazujeme = lineArr[0];
+					line = sloz(lineArr,2);
+				} else {
+					line = sloz(lineArr,0);
+				}
+				line += " ";
+				// dosazovani hodnot za promenne
+				//debug("line: " + line);
+				for (String s: varMap.keySet()) {
+					//debug("key: " + s + " val: " + varMap.get(s));
+					line = line.replaceAll(" " + s + " " , " " + varMap.get(s) + " ");
 				}
 
-				// substituuj a definuj novy promenny
-
-				line = sloz(lineArr);
-
+				// debug("pred vypoctem: " + line);
 				// nyni mame vyraz jako v minulem ukolu -> pouziju jeho reseni
 				try {				
 						// prevedu na postfix
 						line = zpracujVyraz(line);
-
+						//debug("po zpracovani: " + line);
 						// vyhodnotim a vypisu hodnotu
 						val = vyhodnot(line);
 						System.out.printf("%.5f\n", val);
@@ -233,16 +258,16 @@ public class CodEx {
 						val = lastDefVal;
 					}
 					varMap.put("last", val);
+					// debug("key: last val: " + varMap.get("last"));
+					if (!dosazujeme.isEmpty())
+						varMap.put(dosazujeme, val);
+					dosazujeme = "";
 
 			}
 		} catch(IOException ioex) {
 
 		}
 		}
-	}
-
-	static String zjistiJmeno(String in) {
-		return in.substring(0,in.indexOf('('));
 	}
 
 	/* |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -281,13 +306,14 @@ public class CodEx {
 		}
 
 		public String dosad(String[] args) {
-			debug(argc + " " + args.length);
+			// debug(argc + " " + args.length);
 			if (args.length != argc)
 				throw new RuntimeException("Wrong number of params");
 
 			String out = def;
 
 			for (int i=0; i<args.length ; ++i) {
+				// debug(argv[i] + args[i] + i);
 				out = out.replaceAll(""+argv[i], args[i]);
 			}
 			return out;
