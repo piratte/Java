@@ -5,7 +5,7 @@ import java.util.*;
 
 /** DU 4. !!! Nemente jmeno tridy !!!
   * 
-  * @author !!! DOPLN SVE JMENO !!!
+  * @author !!! M.Adam !!!
   */
 public class CodEx {
 
@@ -127,7 +127,10 @@ public class CodEx {
 						case '+': stack.put(x + y); break;
 						case '-': stack.put(x - y); break;
 						case '*': stack.put(x * y); break;
-						case '/': stack.put(x / y); break;
+						case '/':
+							if (y == 0.0)
+								throw new ArithmeticException("/ by zero"); 
+							stack.put(x / y); break;
 						default: throw new UnsupportedOperationException();
 					}
 				} catch (RuntimeException ee) {
@@ -161,7 +164,6 @@ public class CodEx {
 	static HashMap<String,Double> varMap = new HashMap<String,Double>();
 
 	public static void main(String[] argv) {
-
 		final boolean test = false;
 		
 		String line;
@@ -256,7 +258,7 @@ public class CodEx {
 						//System.err.println("main error: " + e);
 						System.out.println(ERROR);
 						val = lastDefVal;
-					}
+					} 
 					varMap.put("last", val);
 					// debug("key: last val: " + varMap.get("last"));
 					if (!dosazujeme.isEmpty())
