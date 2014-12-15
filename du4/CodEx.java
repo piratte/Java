@@ -164,12 +164,16 @@ public class CodEx {
 		final double lastDefVal = 0.0;
 
 		// =============== ZACATEK TESTU ============================
-		line = "foo(x,y)";
+		line = "DEF foo(a,b,c) 2*a + 2*b -c";
 		lineArr = parse(line);
-		for (String s : lineArr) {
+		line = line.replaceAll("x", "" + 123);
+		System.out.println(line);
+		Funkce blah = new Funkce(lineArr);
+		String[] args = parse("30 last 20");
+		for (String s : args ) {
 			debug(s);
 		}
-		System.out.println(sloz(lineArr));
+		System.out.println(blah.dosad(args));
 
 		// =============== KONEC TESTU ============================
 		if (!test) {
@@ -252,27 +256,41 @@ public class CodEx {
 		char[] argv;
 
 		public Funkce(String[] definice) {
-			def = "";
-			for (int i = 2; i< definice.length ; ++i) {
-				def = pridej(def,definice[i]);
+			int i=0; boolean chyba=true;
+			for (i=0; i<definice.length ; ++i) {
+				if(definice[i].equals(")")) {
+					chyba = false;
+					break;
+				}
 			}
-			String argy = definice[1].substring(definice[1].indexOf('('));
+			if (chyba)
+				throw new RuntimeException("Wrong definition, missing bracket");
 
-			argc = definice[1].split(",").length;
+			argc = (i - 2)/2;
 			argv = new char[argc];
-			int j = 0;
-			for (int i=1; i < argc*2; i+=2) {
-				argv[j] = argy.charAt(i);
-				++j;
+			i = 3;
+			for (int j=0; j<argc ; ++j) {
+				argv[j] = definice[i].charAt(0);
+				i+=2;
+			}
+			def = "";
+			for (int k = i; k< definice.length ; ++k) {
+				def = pridej(def,definice[k]);
 			}
 
 		}
 
 		public String dosad(String[] args) {
-			// zkontroluj spravny pocet argumentu
+			debug(argc + " " + args.length);
+			if (args.length != argc)
+				throw new RuntimeException("Wrong number of params");
 
-			// vymen argumenty z definice za parametry z args
-			return "fuck";
+			String out = def;
+
+			for (int i=0; i<args.length ; ++i) {
+				out = out.replaceAll(""+argv[i], args[i]);
+			}
+			return out;
 		}
 
 		public int getNumOfArgs(){
