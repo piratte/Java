@@ -9,11 +9,6 @@ import java.util.*;
   */
 public class CodEx {
 
-	static Queue<Integer> stack = new Queue<Integer>();
-	static final String ERROR = "ERROR";
-	static HashMap<String,Funkce> funMap = new HashMap<String,Funkce>();
-
-
 	static String[] parse(String str) {
 		String[] strs = str.split("(?<=[^\\.a-zA-Z\\d])|(?=[^\\.a-zA-Z\\d])");
 		ArrayList<String> parts = new ArrayList<String>();
@@ -143,34 +138,113 @@ public class CodEx {
 		return stack.popLast();
 	}
 
+	static String sloz(String[] arr) {
+		String out = "";
+		for (String s : arr) {
+			out += s + " ";
+		}
+		return out;
+	}
+
+	/* |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+	 *											MAIN
+	 *  |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+	 */
+
+	static Queue<Integer> stack = new Queue<Integer>();
+	static final String ERROR = "ERROR";
+	static HashMap<String,Funkce> funMap = new HashMap<String,Funkce>();
+	static HashMap<String,Double> varMap = new HashMap<String,Double>();
+
 	public static void main(String[] argv) {
 
-
-		
+		final boolean test = true;
 		String line;
 		String[] lineArr;
+		final double lastDefVal = 0.0;
+
+		// =============== ZACATEK TESTU ============================
+		line = "foo(x,y)";
+		lineArr = parse(line);
+		for (String s : lineArr) {
+			debug(s);
+		}
+		System.out.println(sloz(lineArr));
+
+		// =============== KONEC TESTU ============================
+		if (!test) {
+
+		varMap.put("last",lastDefVal);
+		double val = lastDefVal;
 		try(BufferedReader input = new BufferedReader(new InputStreamReader(System.in))){
 			while ((line = input.readLine()) != null) {
+
+				// osetreni prazdne radky
+				if (line.trim().length() == 0)
+					continue;
+
 				lineArr = parse(line);
 
 				if (lineArr[0].equals("DEF")) {
-					
+					// definijeme si funkci
+					// TODO: dodelat ERROR v definici funkce
+					// je potreba? nestacilo by pri kazdem volani spatne definovane fce hodit ERROR?
+					funMap.put(zjistiJmeno(lineArr[1]), new Funkce(lineArr));
+					varMap.put("last",lastDefVal);
+					continue;
 				}
+
+				if (funMap.containsKey(lineArr[0])) {
+					// nasli jsme identifikator ve funkcich, nyni misto funkce dosadime jeji definici
+
+					// vytahneme to, co se dosazuje za parametry
+					int parNum = funMap.get(lineArr[0]).getNumOfArgs();
+					String[] params = new String[parNum];
+					int j = 0;
+					for (int i=2; i<parNum; i += 2) {
+						params[j++] = lineArr[i];
+					}
+
+					// zavolame metodu na funkci, ktera dosadi za deklarovane argumenty konkretni parametry a vrati vyraz,
+					// ktery odpovida zavolani funkce
+					line = funMap.get(lineArr[0]).dosad(params);
+				}
+
+				// substituuj a definuj novy promenny
+
+				line = sloz(lineArr);
+
+				// nyni mame vyraz jako v minulem ukolu -> pouziju jeho reseni
+				try {				
+						// prevedu na postfix
+						line = zpracujVyraz(line);
+
+						// vyhodnotim a vypisu hodnotu
+						val = vyhodnot(line);
+						System.out.printf("%.5f\n", val);
+						
+					} catch (RuntimeException e) {
+						//System.err.println("main error: " + e);
+						System.out.println(ERROR);
+						val = lastDefVal;
+					}
+					varMap.put("last", val);
+
 			}
 		} catch(IOException ioex) {
 
 		}
-		
+		}
+	}
+
+	static String zjistiJmeno(String in) {
+		return in.substring(0,in.indexOf('('));
 	}
 
 	/* |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	 *											FUNCTION CLASS
 	 *  |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 	 */
-
-	static String zjistiJmeno(String in) {
-		return in.substring(0,in.indexOf('('));
-	}
 
 	static class Funkce {
 		String def;
@@ -194,11 +268,15 @@ public class CodEx {
 
 		}
 
-		public String Dosad(double[] args) {
+		public String dosad(String[] args) {
 			// zkontroluj spravny pocet argumentu
 
-			// vymen argumenty z definice za cisla z args
+			// vymen argumenty z definice za parametry z args
 			return "fuck";
+		}
+
+		public int getNumOfArgs(){
+			return argc;
 		}
 	}
 	/* |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
